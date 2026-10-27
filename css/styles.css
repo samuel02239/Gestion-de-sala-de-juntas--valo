@@ -25,7 +25,7 @@
   --shadow: 0 1px 2px rgba(15, 23, 42, .04);
   --shadow-lg: 0 12px 40px rgba(15, 23, 42, .12);
   --ring: 0 0 0 3px rgba(11, 61, 110, .14);
-  --hour-h: 64px; /* debe coincidir con HOUR_H en app.js */
+  --hour-h: 64px; /* alto de una hora en el cronograma (app.js lo lee de aquí) */
 }
 
 * { box-sizing: border-box; }
@@ -224,7 +224,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .segmented button.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(15, 23, 42, .08); }
 
 .week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.week { display: grid; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.week {
+  --time-w: 72px;
+  display: grid; grid-template-columns: var(--time-w) repeat(var(--dias, 5), minmax(0, 1fr));
+  border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+}
 .wh-cell { background: var(--surface); padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
 .wh-cell:first-child { border-left: 0; }
 .wh-cell .wd { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
@@ -233,6 +237,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .time-col { position: relative; background: var(--surface); }
 .time-col .tl { height: var(--hour-h); font-size: .7rem; color: var(--muted); text-align: right; padding: 0 8px; transform: translateY(-8px); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .time-col .tl:first-child { transform: none; }
+.time-col .tl b { font-weight: 500; }
+.time-col .tl small { font-size: inherit; margin-left: 3px; }
 .day-col {
   position: relative; border-left: 1px solid var(--border); background-color: var(--surface);
   background-image: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px var(--hour-h));
@@ -399,11 +405,26 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
   .page-head-row > .btn, .page-head-row > .row-gap { width: 100%; }
   .page-head-row .row-gap .btn { flex: 1; }
   input, select, textarea { font-size: 16px !important; } /* evita el zoom automático en iPhone */
-  .calendar-card { padding: 14px; }
-  .cal-toolbar { flex-direction: column; align-items: stretch; }
-  .cal-nav h3 { width: 100%; margin: 6px 0 0; font-size: 1rem; }
-  .segmented { display: flex; }
-  .segmented button { flex: 1; }
+  /* Cronograma en el teléfono: semana completa sin desplazamiento lateral */
+  :root { --hour-h: 52px; }
+  .calendar-card { margin: 0 -16px; padding: 14px 8px 10px; border-radius: 0; border-left: 0; border-right: 0; box-shadow: none; }
+  .cal-toolbar { position: relative; flex-wrap: nowrap; align-items: center; margin: 0 6px 14px; padding-top: 34px; }
+  .cal-nav { flex: 1; gap: 6px; }
+  .cal-nav h3 { position: absolute; top: 0; left: 0; right: 0; margin: 0; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .segmented button { padding: 6px 12px; }
+  .week { --time-w: 34px; border-radius: 6px; }
+  .wh-cell { padding: 6px 1px; }
+  .wh-cell .wd { font-size: .6rem; letter-spacing: .04em; }
+  .wh-cell .dn { width: 26px; height: 26px; font-size: .85rem; }
+  .time-col .tl { padding: 0 4px 0 0; font-size: .64rem; line-height: 1.05; transform: translateY(-5px); }
+  .time-col .tl small { display: block; margin: 0; font-size: .5rem; }
+  .event { left: 1px; right: 1px; padding: 3px; border-radius: 4px; border-left-width: 2px; font-size: .58rem; line-height: 1.2; letter-spacing: -.01em; }
+  .event .ev-time, .event .ev-dep { display: none; }
+  .event .ev-title { -webkit-line-clamp: 6; word-break: normal; overflow-wrap: normal; -webkit-hyphens: auto; hyphens: auto; }
+  /* Tarjeta "Hoy": la hora va arriba del tema */
+  .today-list li { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .today-list .t-time { min-width: 0; }
+  .now-line::before { left: -3px; top: -2px; width: 6px; height: 6px; }
   .req-card { padding: 16px; }
   .req-actions .btn { flex: 1 1 auto; }
   .modal { place-items: end center; padding: 0; }
@@ -423,7 +444,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
   .stat { padding: 14px 16px; }
   .stat span { font-size: 1.55rem; }
   .login-card { padding: 28px 20px; }
-  .today-list .t-time { min-width: 84px; }
 }
 @media (pointer: coarse) {
   .btn, .icon-btn, .tabs button, .nav a { min-height: 44px; }

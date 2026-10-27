@@ -5,7 +5,8 @@
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
-const HOUR_H = 64; // debe coincidir con --hour-h en styles.css
+// Alto de una hora en el cronograma: se lee de --hour-h en styles.css (cambia en celular)
+const hourH = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hour-h")) || 64;
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const COLORES = ["#0b3d6e", "#0f766e", "#6d28d9", "#c2410c", "#be123c", "#047857", "#1d4ed8", "#a16207", "#4338ca", "#0e7490"];
@@ -47,7 +48,7 @@ function colorDe(texto) {
 
 const state = {
   semana: inicioSemana(new Date()),
-  vista: window.innerWidth < 760 ? "lista" : "semana",
+  vista: "semana",
   adminTab: "pendiente",
   reservas: []
 };
@@ -363,14 +364,17 @@ async function renderCalendario(silent) {
 
 function htmlSemana(dias) {
   const ini = toMin(CONFIG.HORA_APERTURA), fin = toMin(CONFIG.HORA_CIERRE);
-  const ppm = HOUR_H / 60;
+  const ppm = hourH() / 60;
   const alto = (fin - ini) * ppm;
   const hoy = toISO(new Date());
   const ahora = new Date();
   const ahoraMin = ahora.getHours() * 60 + ahora.getMinutes();
 
   let horas = "";
-  for (let m = ini; m < fin; m += 60) horas += `<div class="tl">${hora12(`${pad(m / 60 | 0)}:${pad(m % 60)}`)}</div>`;
+  for (let m = ini; m < fin; m += 60) {
+    const hh = m / 60 | 0;
+    horas += `<div class="tl"><b>${hh % 12 || 12}</b><small>${hh >= 12 ? "p. m." : "a. m."}</small></div>`;
+  }
 
   const head = `<div class="wh-cell"></div>` + dias.map(d => `
     <div class="wh-cell ${toISO(d) === hoy ? "today" : ""}">
@@ -397,7 +401,7 @@ function htmlSemana(dias) {
 
   return `
     <div class="week-scroll">
-      <div class="week" style="grid-template-columns:84px repeat(${dias.length}, minmax(120px, 1fr))">
+      <div class="week" style="--dias:${dias.length}">
         ${head}
         <div class="time-col" style="height:${alto}px">${horas}</div>
         ${cols}
@@ -441,6 +445,10 @@ $("#semAnterior").addEventListener("click", () => { state.semana = addDays(state
 $("#semSiguiente").addEventListener("click", () => { state.semana = addDays(state.semana, 7); renderCalendario(); });
 $("#semHoy").addEventListener("click", () => { state.semana = inicioSemana(new Date()); renderCalendario(); });
 $$(".segmented button").forEach(b => b.addEventListener("click", () => { state.vista = b.dataset.vista; renderCalendario(); }));
+// Al pasar de computador a celular (o girar el teléfono) se redibuja con el alto de hora correcto
+matchMedia("(max-width: 760px)").addEventListener("change", () => {
+  if (!$("#view-cronograma").hidden) renderCalendario(true);
+});
 
 /* ---------------- Mis solicitudes ---------------- */
 $("#formConsulta").addEventListener("submit", async e => {
