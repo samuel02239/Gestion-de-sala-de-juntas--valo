@@ -2,8 +2,11 @@
    CONFIGURACIÓN DEL SISTEMA — Edite aquí sus preferencias
    ========================================================= */
 const CONFIG = {
-  NOMBRE_SALA: "Sala de Juntas",
-  ENTIDAD: "Oficina de Gestión",
+  NOMBRE_SALA: "Valorización Distrital",
+  ENTIDAD: "Alcaldía",
+
+  // Logo: ponga logo.png o logo.jpg junto a index.html (se prueba en este orden)
+  LOGOS: ["logo.png", "logo.jpg", "logo.jpeg"],
 
   // Horario de atención de la sala (formato 24h)
   HORA_APERTURA: "07:00",
