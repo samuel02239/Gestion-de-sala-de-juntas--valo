@@ -31,5 +31,5 @@ const CONFIG = {
   // Ejemplo: "https://sala-juntas-xxxxx-default-rtdb.firebaseio.com"
   // Ver README.md para crearla gratis en Firebase.
   // ---------------------------------------------------------
-  FIREBASE_URL: ""
+  FIREBASE_URL: "https://gestion-de-oficina-c6a3b-default-rtdb.firebaseio.com"
 };
