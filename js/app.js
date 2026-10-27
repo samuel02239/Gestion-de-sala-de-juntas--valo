@@ -102,6 +102,8 @@ document.addEventListener("click", e => {
     e.preventDefault();
     location.hash = go.dataset.go;
   }
+  // Cierra el menú móvil al tocar fuera de él
+  if (!e.target.closest("#nav, #menuToggle")) $("#nav").classList.remove("open");
 });
 window.addEventListener("hashchange", () => mostrar(location.hash.slice(1)));
 $("#menuToggle").addEventListener("click", () => $("#nav").classList.toggle("open"));
@@ -418,7 +420,7 @@ function htmlLista(dias) {
             <span class="a-time">${esc(rango(r))}</span>
             <span>
               <div class="a-title">${esc(r.tema)}</div>
-              <div class="a-meta">${esc(r.nombre)}</div>
+              <div class="a-meta">${esc(r.nombre)}${r.asistentes ? ` · ${esc(r.asistentes)} asistentes` : ""}</div>
             </span>
           </div>`).join("")}
       </div>`;

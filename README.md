@@ -4,11 +4,13 @@ Aplicación web para solicitar, aprobar y publicar las reuniones de la Sala de J
 
 ## Funciones
 
-- **Registrar reunión**: tema, departamento, descripción, fecha, horario y datos de la persona a cargo (C.C., nombre completo, teléfono, correo).
+- **Registrar reunión**: tema, descripción, fecha, horario y datos de la persona a cargo (nombre completo, teléfono, correo).
 - **Disponibilidad en vivo**: al elegir una fecha se muestran los horarios ocupados. Si el horario elegido se cruza con una reunión aprobada, el sistema muestra **"Horario ocupado"** y no permite enviar la solicitud.
 - **Ver cronograma**: vista semanal (tipo calendario) y vista de lista. Solo muestra las reuniones **aprobadas**.
-- **Mis solicitudes**: cada solicitante consulta el estado de su solicitud con su cédula.
+- **Mis solicitudes**: cada solicitante consulta el estado de su solicitud con su correo electrónico.
 - **Administración** (con contraseña): aprobar, rechazar con motivo, cancelar o eliminar reuniones. El sistema no deja aprobar dos reuniones que se crucen.
+- **Varios equipos en vivo**: con la base de datos configurada, los cambios hechos en un computador aparecen solos en los demás (el pie de página indica «En vivo»).
+- **Diseño adaptable**: funciona en celular, tableta, portátil y monitores grandes.
 
 ## Estructura
 
@@ -17,6 +19,7 @@ index.html        Página principal
 css/styles.css    Diseño
 js/config.js      ⚙️ Configuración (horario, contraseña, base de datos)
 js/storage.js     Guardado de datos (navegador o Firebase)
+js/data.js        Sincronización en tiempo real entre equipos
 js/app.js         Lógica de la aplicación
 ```
 
