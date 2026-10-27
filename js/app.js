@@ -66,7 +66,7 @@ function toast(msg, tipo = "") {
 
 async function cargar() {
   try {
-    const todas = await Store.all();
+    const todas = await Data.load();
     // Borra automáticamente las reuniones que ya pasaron hace más de DIAS_CONSERVAR días
     const limite = toISO(addDays(new Date(), -CONFIG.DIAS_CONSERVAR));
     const vencidas = todas.filter(r => r.fecha < limite);
@@ -119,7 +119,7 @@ function verDetalle(id) {
   const r = state.reservas.find(x => x.id === id);
   if (!r) return;
   abrirModal(`
-    <div class="modal-color" style="background:${colorDe(r.departamento)}"></div>
+    <div class="modal-color" style="background:${colorDe(r.tema)}"></div>
     <span class="status st-${r.estado}">${esc(r.estado)}</span>
     <h3>${esc(r.tema)}</h3>
     <div class="req-when">
@@ -128,7 +128,6 @@ function verDetalle(id) {
     </div>
     <div class="req-desc">${esc(r.descripcion)}</div>
     <div class="kv">
-      <div><small>Departamento</small><span>${esc(r.departamento)}</span></div>
       <div><small>Persona a cargo</small><span>${esc(r.nombre)}</span></div>
       ${r.asistentes ? `<div><small>Asistentes</small><span>${esc(r.asistentes)}</span></div>` : ""}
       <div><small>Correo</small><span>${esc(r.correo)}</span></div>
@@ -147,7 +146,7 @@ async function renderHoy() {
     ? lista.map(r => `
         <li data-id="${esc(r.id)}">
           <span class="t-time">${esc(rango(r))}</span>
-          <span><div class="t-title">${esc(r.tema)}</div><div class="t-dep">${esc(r.departamento)}</div></span>
+          <span><div class="t-title">${esc(r.tema)}</div><div class="t-dep">${esc(r.nombre)}</div></span>
         </li>`).join("")
     : `<li class="today-empty" style="cursor:default;background:none">✅ La sala está libre todo el día</li>`;
 }
@@ -166,11 +165,10 @@ function initFormulario() {
   $("#horaInicio").max = $("#horaFin").max = CONFIG.HORA_CIERRE;
 
   $("#descripcion").addEventListener("input", e => { $("#descCount").textContent = e.target.value.length; });
-  $("#cc").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, ""); });
   $("#telefono").addEventListener("input", e => { e.target.value = e.target.value.replace(/[^\d+\s]/g, ""); });
 
   ["fecha", "horaInicio", "horaFin"].forEach(id =>
-    $("#" + id).addEventListener("change", actualizarDisponibilidad));
+    $("#" + id).addEventListener("change", () => actualizarDisponibilidad()));
 
   form.addEventListener("reset", () => {
     setTimeout(() => {
@@ -200,7 +198,7 @@ form.addEventListener("input", e => {
   if (f) limpiarError(f);
 });
 
-async function actualizarDisponibilidad() {
+async function actualizarDisponibilidad(silent) {
   const fecha = $("#fecha").value;
   const box = $("#disponibilidad");
   $("#alertaChoque").hidden = true;
@@ -233,15 +231,15 @@ async function actualizarDisponibilidad() {
   const ini = $("#horaInicio").value, fin = $("#horaFin").value;
   if (ini && fin && ini < fin) {
     const choque = aprobadas().find(r => seCruzan(r, { fecha, horaInicio: ini, horaFin: fin }));
-    if (choque) mostrarChoque(choque);
+    if (choque) mostrarChoque(choque, silent);
   }
 }
 
-function mostrarChoque(r) {
+function mostrarChoque(r, silent) {
   const al = $("#alertaChoque");
   al.innerHTML = `⛔ <span><strong>Horario ocupado.</strong> La sala ya está reservada el ${esc(fechaLarga(r.fecha))} de ${esc(rango(r))} para «${esc(r.tema)}». Por favor elija otro horario.</span>`;
   al.hidden = false;
-  al.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (!silent) al.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function validar() {
@@ -250,7 +248,6 @@ function validar() {
   const err = (id, msg) => { marcarError($("#" + id), msg); ok = false; };
 
   if (v("tema").length < 4) err("tema", "Escriba el tema de la reunión.");
-  if (v("departamento").length < 3) err("departamento", "Escriba el departamento.");
   if (v("descripcion").length < 10) err("descripcion", "Describa la reunión (mínimo 10 caracteres).");
 
   const fecha = v("fecha"), ini = v("horaInicio"), fin = v("horaFin");
@@ -270,7 +267,6 @@ function validar() {
     }
   }
 
-  if (!/^\d{5,12}$/.test(v("cc"))) err("cc", "Cédula inválida (solo números, 5 a 12 dígitos).");
   if (v("nombre").split(/\s+/).length < 2) err("nombre", "Escriba nombre y apellido.");
   if (v("telefono").replace(/\D/g, "").length < 7) err("telefono", "Teléfono inválido.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v("correo"))) err("correo", "Correo electrónico inválido.");
@@ -294,13 +290,11 @@ async function enviarSolicitud(e) {
     const reserva = {
       id: "R" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase(),
       tema: fd.tema.trim(),
-      departamento: fd.departamento.trim(),
       asistentes: fd.asistentes || "",
       descripcion: fd.descripcion.trim(),
       fecha: fd.fecha,
       horaInicio: fd.horaInicio,
       horaFin: fd.horaFin,
-      cc: fd.cc.trim(),
       nombre: fd.nombre.trim(),
       telefono: fd.telefono.trim(),
       correo: fd.correo.trim().toLowerCase(),
@@ -314,7 +308,7 @@ async function enviarSolicitud(e) {
     if (choque) { mostrarChoque(choque); return; }
     const pendienteCruzada = state.reservas.some(r => r.estado === "pendiente" && seCruzan(r, reserva));
 
-    await Store.save(reserva);
+    await Data.save(reserva);
     form.reset();
 
     abrirModal(`
@@ -324,7 +318,7 @@ async function enviarSolicitud(e) {
         <p class="muted">Su solicitud quedó <strong>pendiente de aprobación</strong> por la administración. Cuando sea aprobada aparecerá en el cronograma.</p>
         <p style="margin-top:14px">Código de solicitud:<br><strong style="font-size:1.3rem;color:var(--primary);letter-spacing:.05em">${esc(reserva.id)}</strong></p>
         ${pendienteCruzada ? `<div class="alert alert-warn" style="text-align:left">⚠️ Existe otra solicitud pendiente en un horario que se cruza. La administración decidirá cuál aprobar.</div>` : ""}
-        <p class="muted" style="font-size:.85rem;margin-top:14px">Puede consultar el estado en «Mis solicitudes» con su cédula.</p>
+        <p class="muted" style="font-size:.85rem;margin-top:14px">Puede consultar el estado en «Mis solicitudes» con su correo.</p>
       </div>
       <div class="modal-actions" style="justify-content:center">
         <button class="btn btn-ghost" data-close data-go="cronograma">Ver cronograma</button>
@@ -355,12 +349,12 @@ function tituloSemana(dias) {
     : `${a.getDate()} ${MESES[a.getMonth()].slice(0, 3)} – ${b.getDate()} ${MESES[b.getMonth()].slice(0, 3)} ${b.getFullYear()}`;
 }
 
-async function renderCalendario() {
+async function renderCalendario(silent) {
   const cont = $("#calendario");
   const dias = diasSemana();
   $("#semTitulo").textContent = tituloSemana(dias);
   $$(".segmented button").forEach(b => b.classList.toggle("active", b.dataset.vista === state.vista));
-  cont.innerHTML = `<div class="loading">Cargando cronograma…</div>`;
+  if (!silent) cont.innerHTML = `<div class="loading">Cargando cronograma…</div>`;
   await cargar();
   cont.innerHTML = state.vista === "semana" ? htmlSemana(dias) : htmlLista(dias);
 }
@@ -388,10 +382,10 @@ function htmlSemana(dias) {
       const top = (toMin(r.horaInicio) - ini) * ppm;
       const h = Math.max((toMin(r.horaFin) - toMin(r.horaInicio)) * ppm, 22);
       return `
-        <div class="event" data-id="${esc(r.id)}" style="top:${top}px;height:${h}px;background:${colorDe(r.departamento)}" title="${esc(r.tema)}">
+        <div class="event" data-id="${esc(r.id)}" style="top:${top}px;height:${h}px;background:${colorDe(r.tema)}" title="${esc(r.tema)}">
           <div class="ev-time">${esc(r.horaInicio)} – ${esc(r.horaFin)}</div>
           <div class="ev-title">${esc(r.tema)}</div>
-          ${h > 60 ? `<div class="ev-dep">${esc(r.departamento)}</div>` : ""}
+          ${h > 60 ? `<div class="ev-dep">${esc(r.nombre)}</div>` : ""}
         </div>`;
     }).join("");
     const nowLine = iso === hoy && ahoraMin >= ini && ahoraMin <= fin
@@ -420,11 +414,11 @@ function htmlLista(dias) {
         <h4>${esc(fechaLarga(iso))} ${iso === hoy ? `<span class="tag-today">Hoy</span>` : ""}</h4>
         ${evs.map(r => `
           <div class="agenda-item" data-id="${esc(r.id)}">
-            <span class="bar" style="background:${colorDe(r.departamento)}"></span>
+            <span class="bar" style="background:${colorDe(r.tema)}"></span>
             <span class="a-time">${esc(rango(r))}</span>
             <span>
               <div class="a-title">${esc(r.tema)}</div>
-              <div class="a-meta">${esc(r.departamento)} · ${esc(r.nombre)}</div>
+              <div class="a-meta">${esc(r.nombre)}</div>
             </span>
           </div>`).join("")}
       </div>`;
@@ -447,18 +441,17 @@ $("#semHoy").addEventListener("click", () => { state.semana = inicioSemana(new D
 $$(".segmented button").forEach(b => b.addEventListener("click", () => { state.vista = b.dataset.vista; renderCalendario(); }));
 
 /* ---------------- Mis solicitudes ---------------- */
-$("#ccConsulta").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, ""); });
 $("#formConsulta").addEventListener("submit", async e => {
   e.preventDefault();
-  const cc = $("#ccConsulta").value.trim();
+  const correo = $("#consultaCorreo").value.trim().toLowerCase();
   const out = $("#resultadoConsulta");
-  if (!cc) return;
+  if (!correo) return;
   out.innerHTML = `<div class="loading">Buscando…</div>`;
   await cargar();
-  const mias = state.reservas.filter(r => r.cc === cc).sort((a, b) => b.creada.localeCompare(a.creada));
+  const mias = state.reservas.filter(r => r.correo === correo).sort((a, b) => b.creada.localeCompare(a.creada));
   out.innerHTML = mias.length
     ? mias.map(r => tarjetaSolicitud(r, false)).join("")
-    : `<div class="card empty"><p>No se encontraron solicitudes para la cédula ${esc(cc)}.</p></div>`;
+    : `<div class="card empty"><p>No se encontraron solicitudes para el correo ${esc(correo)}.</p></div>`;
 });
 
 /* ---------------- Tarjeta de solicitud ---------------- */
@@ -473,7 +466,7 @@ function tarjetaSolicitud(r, admin) {
       <div class="req-top">
         <div>
           <h3>${esc(r.tema)}</h3>
-          <small class="muted">${esc(r.departamento)} · Código ${esc(r.id)}</small>
+          <small class="muted">Código ${esc(r.id)}</small>
         </div>
         <span class="status st-${r.estado}">${esc(r.estado)}</span>
       </div>
@@ -485,7 +478,6 @@ function tarjetaSolicitud(r, admin) {
       <div class="req-desc">${esc(r.descripcion)}</div>
       ${admin ? `
       <div class="kv">
-        <div><small>C.C.</small><span>${esc(r.cc)}</span></div>
         <div><small>Nombre completo</small><span>${esc(r.nombre)}</span></div>
         <div><small>Teléfono</small><span><a href="tel:${esc(r.telefono)}">${esc(r.telefono)}</a></span></div>
         <div><small>Correo</small><span><a href="mailto:${esc(r.correo)}">${esc(r.correo)}</a></span></div>
@@ -541,13 +533,13 @@ $$("#adminTabs button").forEach(b => b.addEventListener("click", () => {
 }));
 $("#adminBuscar").addEventListener("input", () => renderListaAdmin());
 
-async function renderAdmin() {
+async function renderAdmin(silent) {
   const logged = esAdmin();
   $("#adminLogin").hidden = logged;
   $("#adminPanel").hidden = !logged;
   if (!logged) return;
 
-  $("#adminLista").innerHTML = `<div class="loading">Cargando solicitudes…</div>`;
+  if (!silent) $("#adminLista").innerHTML = `<div class="loading">Cargando solicitudes…</div>`;
   await cargar();
 
   const cuenta = est => state.reservas.filter(r => r.estado === est).length;
@@ -565,7 +557,7 @@ function renderListaAdmin() {
   const q = $("#adminBuscar").value.trim().toLowerCase();
   const lista = state.reservas
     .filter(r => r.estado === state.adminTab)
-    .filter(r => !q || [r.tema, r.nombre, r.cc, r.departamento, r.correo, r.id].join(" ").toLowerCase().includes(q))
+    .filter(r => !q || [r.tema, r.nombre, r.telefono, r.correo, r.id].join(" ").toLowerCase().includes(q))
     .sort((a, b) => state.adminTab === "pendiente"
       ? (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio)
       : (b.fecha + b.horaInicio).localeCompare(a.fecha + a.horaInicio));
@@ -587,7 +579,7 @@ $("#adminLista").addEventListener("click", async e => {
     if (accion === "rechazar") pedirMotivo(r, "rechazar");
     if (accion === "cancelar") pedirMotivo(r, "cancelar");
     if (accion === "eliminar" && confirm(`¿Eliminar definitivamente la solicitud «${r.tema}»?`)) {
-      await Store.remove(id);
+      await Data.remove(id);
       toast("Solicitud eliminada.", "ok");
       renderAdmin();
     }
@@ -604,11 +596,11 @@ async function aprobar(r) {
     return renderAdmin();
   }
   const ahora = new Date().toISOString();
-  await Store.update(r.id, { estado: "aprobada", revisada: ahora });
+  await Data.update(r.id, { estado: "aprobada", revisada: ahora });
 
   const cruzadas = state.reservas.filter(p => p.id !== r.id && p.estado === "pendiente" && seCruzan(p, r));
   if (cruzadas.length && confirm(`Hay ${cruzadas.length} solicitud(es) pendiente(s) que se cruzan con este horario.\n¿Desea rechazarlas automáticamente?`)) {
-    await Promise.all(cruzadas.map(p => Store.update(p.id, {
+    await Promise.all(cruzadas.map(p => Data.update(p.id, {
       estado: "rechazada", revisada: ahora, motivo: "El horario fue asignado a otra reunión."
     })));
   }
@@ -631,7 +623,7 @@ function pedirMotivo(r, tipo) {
     </div>`);
   $("#confirmarMotivo").addEventListener("click", async () => {
     try {
-      await Store.update(r.id, {
+      await Data.update(r.id, {
         estado: "rechazada",
         revisada: new Date().toISOString(),
         motivo: $("#motivoTxt").value.trim() || (tipo === "cancelar" ? "Reunión cancelada por la administración." : "")
@@ -645,6 +637,33 @@ function pedirMotivo(r, tipo) {
   });
 }
 
+/* ---------------- Logo y tiempo real ---------------- */
+function cargarLogo() {
+  const lista = CONFIG.LOGOS || ["logo.png", "logo.jpg", "logo.jpeg"];
+  (function probar(i) {
+    if (i >= lista.length) return; // sin logo: se queda el ícono por defecto
+    const t = new Image();
+    t.onload = () => {
+      $("#brandLogo").src = lista[i];
+      $("#brandLogo").hidden = false;
+      $("#brandIcon").hidden = true;
+      let l = document.querySelector("link[rel~=icon]");
+      if (!l) { l = document.createElement("link"); l.rel = "icon"; document.head.appendChild(l); }
+      l.href = lista[i];
+    };
+    t.onerror = () => probar(i + 1);
+    t.src = lista[i];
+  })(0);
+}
+
+function refrescarVista() {
+  const v = location.hash.slice(1) || "inicio";
+  if (v === "inicio") renderHoy();
+  else if (v === "cronograma") renderCalendario(true);
+  else if (v === "registrar") actualizarDisponibilidad(true);
+  else if (v === "admin") renderAdmin(true);
+}
+
 /* ---------------- Inicio de la app ---------------- */
 (function init() {
   document.title = `${CONFIG.NOMBRE_SALA} · Reservas`;
@@ -652,5 +671,13 @@ function pedirMotivo(r, tipo) {
   $("#brandEntidad").textContent = CONFIG.ENTIDAD;
   $("#footerTxt").textContent = `${CONFIG.NOMBRE_SALA} · ${CONFIG.ENTIDAD} · Horario ${hora12(CONFIG.HORA_APERTURA)} – ${hora12(CONFIG.HORA_CIERRE)}`;
   initFormulario();
+  cargarLogo();
+  Data.onStatus(s => {
+    const el = $("#liveStatus");
+    el.dataset.s = s;
+    el.textContent = { live: "En vivo", retry: "Reconectando…", local: "Modo local (solo este equipo)", error: "Sin conexión" }[s];
+  });
+  Data.subscribe(refrescarVista);
+  Data.init();
   mostrar(location.hash.slice(1) || "inicio");
 })();
