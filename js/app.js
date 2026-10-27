@@ -8,7 +8,7 @@ const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 const HOUR_H = 64; // debe coincidir con --hour-h en styles.css
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const COLORES = ["#0b3d6e", "#0f8b8d", "#7c3aed", "#c2410c", "#be185d", "#15803d", "#1d4ed8", "#a16207", "#4338ca", "#0e7490"];
+const COLORES = ["#0b3d6e", "#0f766e", "#6d28d9", "#c2410c", "#be123c", "#047857", "#1d4ed8", "#a16207", "#4338ca", "#0e7490"];
 
 /* ---------------- Utilidades ---------------- */
 function esc(str) {
@@ -384,7 +384,7 @@ function htmlSemana(dias) {
       const top = (toMin(r.horaInicio) - ini) * ppm;
       const h = Math.max((toMin(r.horaFin) - toMin(r.horaInicio)) * ppm, 22);
       return `
-        <div class="event" data-id="${esc(r.id)}" style="top:${top}px;height:${h}px;background:${colorDe(r.tema)}" title="${esc(r.tema)}">
+        <div class="event" data-id="${esc(r.id)}" style="top:${top}px;height:${h}px;--c:${colorDe(r.tema)}" title="${esc(r.tema)}">
           <div class="ev-time">${esc(r.horaInicio)} – ${esc(r.horaFin)}</div>
           <div class="ev-title">${esc(r.tema)}</div>
           ${h > 60 ? `<div class="ev-dep">${esc(r.nombre)}</div>` : ""}
