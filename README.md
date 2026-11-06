@@ -17,7 +17,8 @@ Aplicación web para solicitar, aprobar y publicar las reuniones de la Sala de J
 
 ```
 index.html        Página principal
-css/styles.css    Diseño
+css/styles.css    Diseño (colores tomados de los logos: mar, agua, sol, coral y palma)
+img/              Escudo, logo de Valorización Distrital y sticker «Cartagena se valoriza»
 js/config.js      ⚙️ Configuración (horario, contraseña, base de datos)
 js/storage.js     Guardado de datos (navegador o Firebase)
 js/data.js        Sincronización en tiempo real entre equipos

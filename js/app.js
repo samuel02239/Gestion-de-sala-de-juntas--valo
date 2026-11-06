@@ -868,25 +868,7 @@ $("#avisoAdmin").addEventListener("click", async e => {
   }
 });
 
-/* ---------------- Logo y tiempo real ---------------- */
-function cargarLogo() {
-  const lista = CONFIG.LOGOS || ["logo.png", "logo.jpg", "logo.jpeg"];
-  (function probar(i) {
-    if (i >= lista.length) return; // sin logo: se queda el ícono por defecto
-    const t = new Image();
-    t.onload = () => {
-      $("#brandLogo").src = lista[i];
-      $("#brandLogo").hidden = false;
-      $("#brandIcon").hidden = true;
-      let l = document.querySelector("link[rel~=icon]");
-      if (!l) { l = document.createElement("link"); l.rel = "icon"; document.head.appendChild(l); }
-      l.href = lista[i];
-    };
-    t.onerror = () => probar(i + 1);
-    t.src = lista[i];
-  })(0);
-}
-
+/* ---------------- Tiempo real ---------------- */
 function refrescarVista() {
   const v = location.hash.slice(1) || "inicio";
   if (v === "inicio") renderHoy();
@@ -900,9 +882,8 @@ function refrescarVista() {
   document.title = `${CONFIG.NOMBRE_SALA} · Reservas`;
   $("#brandSala").textContent = CONFIG.NOMBRE_SALA;
   $("#brandEntidad").textContent = CONFIG.ENTIDAD;
-  $("#footerTxt").textContent = `${CONFIG.NOMBRE_SALA} · ${CONFIG.ENTIDAD} · Horario ${hora12(CONFIG.HORA_APERTURA)} – ${hora12(CONFIG.HORA_CIERRE)}`;
+  $("#footerTxt").textContent = `${CONFIG.ENTIDAD} · ${CONFIG.DIAS_HABILES.join() === "1,2,3,4,5" ? "Lunes a viernes, " : ""}${hora12(CONFIG.HORA_APERTURA)} – ${hora12(CONFIG.HORA_CIERRE)}`;
   initFormulario();
-  cargarLogo();
   Data.onStatus(s => {
     const el = $("#liveStatus");
     el.dataset.s = s;

@@ -3,31 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#0b2545">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="icon" href="img/escudo.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sala de Juntas">
   <title>Valorización Distrital · Reservas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=3">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=4">
 </head>
 <body>
 
   <!-- ============ ENCABEZADO ============ -->
+  <div class="brand-stripe" aria-hidden="true"></div>
   <header class="topbar">
     <div class="topbar-inner">
       <a href="#inicio" class="brand" data-go="inicio">
-        <img id="brandLogo" class="brand-logo" alt="Logo de la Alcaldía" hidden>
-        <span class="brand-icon" id="brandIcon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-        </span>
+        <img class="brand-seal" src="img/escudo.png" alt="Escudo del Distrito de Cartagena de Indias" width="44" height="44">
         <span>
           <strong id="brandSala">Valorización Distrital</strong>
-          <small id="brandEntidad">Alcaldía</small>
+          <small id="brandEntidad">Alcaldía de Cartagena</small>
         </span>
       </a>
       <button class="bell" id="btnAvisos" data-s="inactivo" aria-label="Avisos en este navegador" title="Avisos en este navegador" hidden>
@@ -64,39 +62,49 @@
     <!-- ============ INICIO ============ -->
     <section class="view" id="view-inicio">
       <div class="hero">
+        <div class="hero-bg" aria-hidden="true">
+          <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+          <svg class="hero-waves" viewBox="0 0 1200 160" preserveAspectRatio="none">
+            <path d="M0 96c120-40 240-40 360 0s240 40 360 0 240-40 360 0 120 20 120 20v44H0z" fill="rgba(60,196,201,.16)"/>
+            <path d="M0 120c150-36 300-36 450 0s300 36 450 0 300-36 300-36v76H0z" fill="rgba(60,196,201,.22)"/>
+          </svg>
+        </div>
         <div class="hero-text">
-          <span class="eyebrow">Sistema de reservas</span>
-          <h1>Reserve la sala de <span class="hl">Valorización Distrital</span> en minutos</h1>
-          <p>Registre su reunión, consulte la disponibilidad y reciba la aprobación de la administración. Solo las reuniones aprobadas aparecen en el cronograma oficial.</p>
+          <span class="eyebrow">Sala de juntas · Reservas en línea</span>
+          <h1>La sala de juntas, <span class="hl">a un clic</span>.</h1>
+          <p>Reserve la sala de Valorización Distrital: registre su reunión, vea la disponibilidad en vivo y reciba la respuesta de la administración directo en su navegador.</p>
           <div class="hero-actions">
-            <button class="btn btn-primary btn-lg" data-go="registrar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <button class="btn btn-sun btn-lg" data-go="registrar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
               Registrar reunión
             </button>
-            <button class="btn btn-ghost btn-lg" data-go="cronograma">Ver cronograma</button>
+            <button class="btn btn-glass btn-lg" data-go="cronograma">Ver cronograma →</button>
           </div>
         </div>
-        <div class="hero-card">
+        <div class="hero-side">
+          <img class="hero-sticker" src="img/cartagena-se-valoriza.webp" alt="Cartagena se valoriza" width="760" height="334">
+          <div class="hero-card">
           <div class="hero-card-head">
             <span>Hoy</span>
             <strong id="hoyFecha"></strong>
           </div>
           <ul class="today-list" id="hoyLista"></ul>
+          </div>
         </div>
       </div>
 
       <div class="steps">
-        <div class="step">
+        <div class="step s1">
           <span class="step-num">1</span>
           <h3>Registre</h3>
           <p>Diligencie el formulario con el tema, responsable, fecha y horario.</p>
         </div>
-        <div class="step">
+        <div class="step s2">
           <span class="step-num">2</span>
           <h3>Espere aprobación</h3>
           <p>La administración revisa la solicitud y le llega un aviso a su navegador con la respuesta.</p>
         </div>
-        <div class="step">
+        <div class="step s3">
           <span class="step-num">3</span>
           <h3>Consulte el cronograma</h3>
           <p>Las reuniones aprobadas quedan publicadas y el horario bloqueado.</p>
@@ -230,9 +238,7 @@
     <section class="view" id="view-admin" hidden>
       <div id="adminLogin" class="login-wrap">
         <form class="card login-card" id="formLogin">
-          <div class="login-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
+          <img class="login-seal" src="img/escudo.png" alt="" width="72" height="72">
           <h2>Acceso administrativo</h2>
           <p class="muted">Ingrese la contraseña para gestionar las solicitudes.</p>
           <div class="field">
@@ -279,8 +285,15 @@
   </main>
 
   <footer class="footer">
-    <span id="footerTxt"></span>
-    <span class="live" id="liveStatus"></span>
+    <div class="footer-inner">
+      <img class="footer-lockup" src="img/valorizacion-blanco.webp" alt="Valorización Distrital · Distrito de Cartagena de Indias" width="420" height="496">
+      <div class="footer-info">
+        <strong>Sala de Juntas</strong>
+        <span id="footerTxt"></span>
+        <span class="live" id="liveStatus"></span>
+      </div>
+      <img class="footer-sticker" src="img/cartagena-se-valoriza.webp" alt="Cartagena se valoriza" width="760" height="334">
+    </div>
   </footer>
 
   <!-- ============ MODAL ============ -->
@@ -294,10 +307,10 @@
 
   <div class="toast-wrap" id="toasts"></div>
 
-  <script src="js/config.js?v=3"></script>
-  <script src="js/storage.js?v=3"></script>
-  <script src="js/data.js?v=3"></script>
-  <script src="js/avisos.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/config.js?v=4"></script>
+  <script src="js/storage.js?v=4"></script>
+  <script src="js/data.js?v=4"></script>
+  <script src="js/avisos.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
