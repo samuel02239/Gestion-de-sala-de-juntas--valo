@@ -452,3 +452,60 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ============ AVISOS AL NAVEGADOR ============ */
+.bell {
+  position: relative; width: 38px; height: 38px; flex-shrink: 0;
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--muted); transition: background .15s, color .15s;
+}
+.bell:hover { background: var(--surface-2); color: var(--text); }
+.bell:focus-visible { outline: none; box-shadow: var(--ring); }
+.bell-dot { position: absolute; top: 7px; right: 8px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--surface); background: var(--border-strong); }
+.bell[data-s="activo"] { color: var(--primary); }
+.bell[data-s="activo"] .bell-dot { background: #10b981; }
+.bell[data-s="inactivo"] .bell-dot, .bell[data-s="ios"] .bell-dot { background: #f59e0b; }
+.bell[data-s="bloqueado"] .bell-dot { background: #ef4444; }
+
+.aviso-banner {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; margin-bottom: 28px;
+  background: var(--primary-50); border: 1px solid #d5e1ef; border-radius: var(--radius);
+  animation: fade .2s ease;
+}
+.aviso-banner-icon { font-size: 1.4rem; line-height: 1; }
+.aviso-banner-txt { flex: 1; min-width: 0; font-size: .88rem; color: var(--text-2); }
+.aviso-banner-txt strong { display: block; color: var(--text); font-size: .92rem; }
+.aviso-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.aviso-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px; margin-bottom: 16px; flex-wrap: wrap; }
+.aviso-card .aviso-ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); font-size: 1.15rem; flex-shrink: 0; }
+.aviso-card .aviso-txt { flex: 1; min-width: 220px; font-size: .86rem; color: var(--muted); }
+.aviso-card .aviso-txt strong { display: block; color: var(--text); font-size: .95rem; font-weight: 600; }
+.aviso-card.on .aviso-ico { background: var(--ok-bg); }
+.aviso-card.off .aviso-ico { background: var(--warn-bg); }
+.aviso-pill { display: inline-block; font-size: .72rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+.aviso-pill.on { background: var(--ok-bg); color: var(--ok); }
+.aviso-pill.off { background: var(--warn-bg); color: var(--warn); }
+
+.aviso-modal-estado { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius-sm); background: var(--surface-2); margin: 14px 0 4px; font-size: .88rem; color: var(--text-2); }
+.aviso-modal-estado > span:first-child { font-size: 1.3rem; line-height: 1.2; }
+.aviso-lista { margin: 12px 0 0; padding-left: 18px; font-size: .86rem; color: var(--text-2); }
+.aviso-lista li + li { margin-top: 4px; }
+.section-label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 8px 0 2px; }
+.follow-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; font-size: .88rem; color: var(--text-2); }
+
+@media (max-width: 900px) {
+  .bell { margin-right: -6px; }
+}
+@media (max-width: 760px) {
+  .aviso-banner { flex-wrap: wrap; margin-bottom: 22px; }
+  .aviso-banner-txt { flex-basis: calc(100% - 50px); }
+  .aviso-banner-actions { width: 100%; }
+  .aviso-banner-actions .btn { flex: 1; }
+  .aviso-card .btn { flex: 1 1 auto; }
+}
+@media (pointer: coarse) {
+  .bell { width: 44px; height: 44px; }
+}

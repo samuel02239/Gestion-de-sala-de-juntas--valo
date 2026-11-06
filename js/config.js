@@ -31,5 +31,16 @@ const CONFIG = {
   // Ejemplo: "https://sala-juntas-xxxxx-default-rtdb.firebaseio.com"
   // Ver README.md para crearla gratis en Firebase.
   // ---------------------------------------------------------
-  FIREBASE_URL: "https://gestion-de-oficina-c6a3b-default-rtdb.firebaseio.com"
+  FIREBASE_URL: "https://gestion-de-oficina-c6a3b-default-rtdb.firebaseio.com",
+
+  // ---------------------------------------------------------
+  // AVISOS AL NAVEGADOR (notificaciones push)
+  // Llave pública VAPID. La llave PRIVADA va solo en el secreto
+  // VAPID_PRIVATE_KEY de GitHub (Settings > Secrets > Actions).
+  // Vacío -> los avisos quedan desactivados.
+  // ---------------------------------------------------------
+  VAPID_PUBLIC_KEY: "BD7cNMefx50BbFuoXWTtMuR2RdpTkvJYwBf9BSxdo_CVWfvptPL916CwmTK1HUiyWsU92W0IstdS7AS3GnzjRZA",
+
+  // Recordatorio al solicitante: minutos antes de que empiece su reunión aprobada (0 = desactivado)
+  RECORDATORIO_MIN: 60
 };

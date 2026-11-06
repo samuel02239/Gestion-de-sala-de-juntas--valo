@@ -57,12 +57,12 @@ function seCruzan(a, b) {
   return a.fecha === b.fecha && a.horaInicio < b.horaFin && b.horaInicio < a.horaFin;
 }
 
-function toast(msg, tipo = "") {
+function toast(msg, tipo = "", ms = 4500) {
   const el = document.createElement("div");
   el.className = `toast ${tipo}`;
   el.textContent = msg;
   $("#toasts").appendChild(el);
-  setTimeout(() => el.remove(), 4500);
+  setTimeout(() => el.remove(), ms);
 }
 
 async function cargar() {
@@ -95,6 +95,8 @@ function mostrar(vista) {
   if (vista === "cronograma") renderCalendario();
   if (vista === "registrar") actualizarDisponibilidad();
   if (vista === "admin") renderAdmin();
+  if (vista === "consultar") renderMisLocales();
+  renderBanner(vista);
 }
 
 document.addEventListener("click", e => {
@@ -304,6 +306,8 @@ async function enviarSolicitud(e) {
       estado: "pendiente",
       creada: new Date().toISOString()
     };
+    const yo = Avisos.miId();
+    if (yo) reserva.subs = { [yo]: reserva.creada }; // este navegador recibirá la respuesta
 
     // Verificación final contra datos actualizados
     await cargar();
@@ -312,6 +316,7 @@ async function enviarSolicitud(e) {
     const pendienteCruzada = state.reservas.some(r => r.estado === "pendiente" && seCruzan(r, reserva));
 
     await Data.save(reserva);
+    Avisos.agregarMias([reserva.id]);
     form.reset();
 
     abrirModal(`
@@ -321,12 +326,25 @@ async function enviarSolicitud(e) {
         <p class="muted">Su solicitud quedó <strong>pendiente de aprobación</strong> por la administración. Cuando sea aprobada aparecerá en el cronograma.</p>
         <p style="margin-top:14px">Código de solicitud:<br><strong style="font-size:1.3rem;color:var(--primary);letter-spacing:.05em">${esc(reserva.id)}</strong></p>
         ${pendienteCruzada ? `<div class="alert alert-warn" style="text-align:left">⚠️ Existe otra solicitud pendiente en un horario que se cruza. La administración decidirá cuál aprobar.</div>` : ""}
-        <p class="muted" style="font-size:.85rem;margin-top:14px">Puede consultar el estado en «Mis solicitudes» con su correo.</p>
+        ${avisoTrasEnviar()}
+        <p class="muted" style="font-size:.85rem;margin-top:14px">Puede consultar el estado en «Mis solicitudes».</p>
       </div>
       <div class="modal-actions" style="justify-content:center">
         <button class="btn btn-ghost" data-close data-go="cronograma">Ver cronograma</button>
         <button class="btn btn-primary" data-close>Aceptar</button>
       </div>`);
+    $("#btnAvisoTrasEnviar")?.addEventListener("click", async e => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      try {
+        await Avisos.activar();
+        b.closest(".aviso-modal-estado").innerHTML = `<span>✅</span><span>Listo. Le avisaremos <strong>en este navegador</strong> cuando la administración responda.</span>`;
+        actualizarAvisosUI();
+      } catch (err) {
+        toast(err.message, "err", 9000);
+        b.disabled = false;
+      }
+    });
   } catch (err) {
     toast("No se pudo enviar la solicitud: " + err.message, "err");
   } finally {
@@ -460,8 +478,9 @@ $("#formConsulta").addEventListener("submit", async e => {
   await cargar();
   const mias = state.reservas.filter(r => r.correo === correo).sort((a, b) => b.creada.localeCompare(a.creada));
   out.innerHTML = mias.length
-    ? mias.map(r => tarjetaSolicitud(r, false)).join("")
+    ? bloqueSeguir(mias) + mias.map(r => tarjetaSolicitud(r, false)).join("")
     : `<div class="card empty"><p>No se encontraron solicitudes para el correo ${esc(correo)}.</p></div>`;
+  $("#misLocales").innerHTML = "";
 });
 
 /* ---------------- Tarjeta de solicitud ---------------- */
@@ -549,7 +568,10 @@ async function renderAdmin(silent) {
   $("#adminPanel").hidden = !logged;
   if (!logged) return;
 
-  if (!silent) $("#adminLista").innerHTML = `<div class="loading">Cargando solicitudes…</div>`;
+  if (!silent) {
+    renderAvisoAdmin();
+    $("#adminLista").innerHTML = `<div class="loading">Cargando solicitudes…</div>`;
+  }
   await cargar();
 
   const cuenta = est => state.reservas.filter(r => r.estado === est).length;
@@ -635,6 +657,7 @@ function pedirMotivo(r, tipo) {
     try {
       await Data.update(r.id, {
         estado: "rechazada",
+        ...(tipo === "cancelar" ? { cancelada: true } : {}),
         revisada: new Date().toISOString(),
         motivo: $("#motivoTxt").value.trim() || (tipo === "cancelar" ? "Reunión cancelada por la administración." : "")
       });
@@ -646,6 +669,204 @@ function pedirMotivo(r, tipo) {
     }
   });
 }
+
+/* ---------------- Avisos al navegador ---------------- */
+const K_NO_BANNER = "salaJuntas.noBanner";
+const TXT_IOS = "En iPhone/iPad: toque Compartir → «Agregar a inicio», abra la página desde ese ícono y active los avisos allí.";
+const TXT_BLOQUEADO = "Los avisos están bloqueados. Toque el candado 🔒 junto a la dirección de la página → Notificaciones → Permitir, y recargue.";
+
+function actualizarAvisosUI() {
+  const e = Avisos.estado();
+  const bell = $("#btnAvisos");
+  bell.hidden = e === "off";
+  bell.dataset.s = e;
+  bell.title = { activo: "Avisos activos en este navegador", bloqueado: "Avisos bloqueados", ios: "Activar avisos", no: "Este navegador no permite avisos" }[e] || "Activar avisos";
+  renderBanner(location.hash.slice(1) || "inicio");
+  if (!$("#view-admin").hidden && esAdmin()) renderAvisoAdmin();
+}
+
+// Mensaje dentro del modal de "Solicitud enviada"
+function avisoTrasEnviar() {
+  const e = Avisos.estado();
+  if (e === "activo") return `<div class="aviso-modal-estado" style="text-align:left"><span>🔔</span><span>Le avisaremos <strong>en este navegador</strong> cuando la administración responda.</span></div>`;
+  if (e === "inactivo") return `<div class="aviso-modal-estado" style="text-align:left"><span>🔔</span><span>¿Quiere un aviso cuando respondan, aunque cierre la página?<br><button class="btn btn-primary btn-sm" id="btnAvisoTrasEnviar" style="margin-top:8px">Avisarme en este navegador</button></span></div>`;
+  if (e === "ios") return `<div class="aviso-modal-estado" style="text-align:left"><span>🔔</span><span>${esc(TXT_IOS)}</span></div>`;
+  return "";
+}
+
+// Caja "Avisarme de estas solicitudes" en Mis solicitudes
+function bloqueSeguir(lista) {
+  const e = Avisos.estado();
+  if (["off", "no"].includes(e)) return "";
+  const vivas = lista.filter(r => r.estado !== "rechazada");
+  if (!vivas.length) return "";
+  const yo = Avisos.miId();
+  if (yo && vivas.every(r => r.subs && r.subs[yo]))
+    return `<div class="card follow-box"><span>🔔 Recibirá avisos de estas solicitudes en este navegador.</span></div>`;
+  if (e === "bloqueado") return `<div class="card follow-box"><span>${esc(TXT_BLOQUEADO)}</span></div>`;
+  if (e === "ios") return `<div class="card follow-box"><span>${esc(TXT_IOS)}</span></div>`;
+  return `<div class="card follow-box">
+      <span>🔔 ¿Quiere saber aquí cuando las aprueben o cambien?</span>
+      <button class="btn btn-primary btn-sm" data-seguir="${esc(vivas.map(r => r.id).join(","))}">Avisarme en este navegador</button>
+    </div>`;
+}
+
+async function renderMisLocales() {
+  const box = $("#misLocales");
+  const ids = Avisos.misIds();
+  if (!ids.length || $("#resultadoConsulta").innerHTML.trim()) { box.innerHTML = ""; return; }
+  await cargar();
+  const mias = state.reservas.filter(r => ids.includes(r.id)).sort((a, b) => b.creada.localeCompare(a.creada));
+  box.innerHTML = mias.length
+    ? `<p class="section-label">Solicitudes hechas desde este navegador</p>` + bloqueSeguir(mias) + mias.map(r => tarjetaSolicitud(r, false)).join("")
+    : "";
+}
+
+$("#view-consultar").addEventListener("click", async e => {
+  const b = e.target.closest("[data-seguir]");
+  if (!b) return;
+  b.disabled = true;
+  try {
+    await Avisos.seguir(b.dataset.seguir.split(","));
+    b.closest(".follow-box").innerHTML = `<span>✅ Listo. Recibirá avisos de estas solicitudes en este navegador.</span>`;
+    toast("Avisos activados en este navegador.", "ok");
+    actualizarAvisosUI();
+  } catch (err) {
+    toast(err.message, "err", 9000);
+    b.disabled = false;
+  }
+});
+
+// Banner de invitación (inicio, registrar y mis solicitudes)
+function renderBanner(vista) {
+  const e = Avisos.estado();
+  let oculto = 0;
+  try { oculto = Number(localStorage.getItem(K_NO_BANNER)) || 0; } catch {}
+  const mostrarlo = ["inicio", "registrar", "consultar"].includes(vista)
+    && ["inactivo", "ios"].includes(e)
+    && Date.now() - oculto > 14 * 864e5;
+  $("#avisoBanner").hidden = !mostrarlo;
+  if (!mostrarlo) return;
+  $("#avisoBannerSi").hidden = e === "ios";
+  $("#avisoBannerTxt").textContent = e === "ios"
+    ? TXT_IOS
+    : "Le avisamos apenas la administración apruebe o rechace su solicitud, aunque tenga la página cerrada.";
+}
+$("#avisoBannerNo").addEventListener("click", () => {
+  try { localStorage.setItem(K_NO_BANNER, String(Date.now())); } catch {}
+  $("#avisoBanner").hidden = true;
+});
+$("#avisoBannerSi").addEventListener("click", async e => {
+  const b = e.currentTarget;
+  b.disabled = true;
+  try {
+    await Avisos.activar();
+    toast("Avisos activados en este navegador.", "ok");
+    Avisos.probar().catch(() => {});
+    actualizarAvisosUI();
+  } catch (err) {
+    toast(err.message, "err", 9000);
+  } finally {
+    b.disabled = false;
+  }
+});
+
+// Campana: estado y opciones de avisos de este navegador
+function abrirModalAvisos() {
+  const e = Avisos.estado();
+  const admin = Avisos.esAdminAvisos();
+  const estadoHTML = {
+    activo: `<span>✅</span><span><strong>Activos en este navegador.</strong>${admin ? " También recibe las solicitudes nuevas (administración)." : ""}</span>`,
+    inactivo: `<span>🔕</span><span>Este navegador todavía no recibe avisos.</span>`,
+    bloqueado: `<span>⛔</span><span>${esc(TXT_BLOQUEADO)}</span>`,
+    ios: `<span>📱</span><span>${esc(TXT_IOS)}</span>`,
+    no: `<span>⚠️</span><span>Este navegador no permite avisos. Use Chrome, Edge o Firefox actualizados.</span>`
+  }[e];
+  abrirModal(`
+    <h3>Avisos en este navegador</h3>
+    <div class="aviso-modal-estado">${estadoHTML}</div>
+    <ul class="aviso-lista">
+      <li><strong>Si solicita la sala:</strong> le avisamos cuando su reunión sea aprobada, rechazada o cancelada${CONFIG.RECORDATORIO_MIN ? `, y ${CONFIG.RECORDATORIO_MIN} minutos antes de que empiece` : ""}.</li>
+      <li><strong>Administradores:</strong> reciben cada solicitud nueva (se activa en Administración).</li>
+      <li>Llegan aunque la página esté cerrada (pueden tardar unos minutos). Con la página abierta llegan al instante.</li>
+    </ul>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-close>Cerrar</button>
+      ${e === "activo" ? `
+        <button class="btn btn-danger" id="avDesactivar">Desactivar</button>
+        <button class="btn btn-primary" id="avProbar">Enviar aviso de prueba</button>` : ""}
+      ${e === "inactivo" ? `<button class="btn btn-primary" id="avActivar">Activar avisos</button>` : ""}
+    </div>`);
+  $("#avProbar")?.addEventListener("click", () => Avisos.probar().catch(err => toast(err.message, "err")));
+  $("#avDesactivar")?.addEventListener("click", async () => {
+    await Avisos.desactivar();
+    cerrarModal();
+    toast("Avisos desactivados en este navegador.", "ok");
+    actualizarAvisosUI();
+  });
+  $("#avActivar")?.addEventListener("click", async ev => {
+    ev.currentTarget.disabled = true;
+    try {
+      await Avisos.activar();
+      Avisos.probar().catch(() => {});
+      toast("Avisos activados en este navegador.", "ok");
+      actualizarAvisosUI();
+      abrirModalAvisos();
+    } catch (err) {
+      toast(err.message, "err", 9000);
+      ev.currentTarget.disabled = false;
+    }
+  });
+}
+$("#btnAvisos").addEventListener("click", abrirModalAvisos);
+
+// Tarjeta del panel de administración
+async function renderAvisoAdmin() {
+  const box = $("#avisoAdmin");
+  const e = Avisos.estado();
+  box.hidden = e === "off";
+  if (e === "off") return;
+  const on = Avisos.esAdminAvisos();
+  const [ico, titulo, txt, botones] = on
+    ? ["🔔", `Avisos de solicitudes nuevas <span class="aviso-pill on">Activos</span>`,
+       "Este navegador recibe un aviso por cada solicitud nueva, aunque la página esté cerrada.",
+       `<button class="btn btn-ghost btn-sm" data-av="probar">Probar aviso</button>
+        <button class="btn btn-ghost btn-sm" data-av="quitar">Desactivar</button>`]
+    : e === "bloqueado" ? ["⛔", "Avisos bloqueados en este navegador", TXT_BLOQUEADO, ""]
+    : e === "ios" ? ["📱", "Avisos en iPhone/iPad", TXT_IOS, ""]
+    : e === "no" ? ["⚠️", "Este navegador no permite avisos", "Use Chrome, Edge o Firefox actualizados para recibir las solicitudes nuevas.", ""]
+    : ["🔕", `Avisos de solicitudes nuevas <span class="aviso-pill off">Inactivos</span>`,
+       "Active los avisos y este navegador le avisará cada vez que alguien solicite la sala, aunque tenga la página cerrada.",
+       `<button class="btn btn-primary btn-sm" data-av="activar">Activar avisos en este navegador</button>`];
+  box.className = `card aviso-card ${on ? "on" : "off"}`;
+  box.innerHTML = `
+    <span class="aviso-ico">${ico}</span>
+    <div class="aviso-txt"><strong>${titulo}</strong>${esc(txt)} <span id="avisoAdminN"></span></div>
+    ${botones ? `<div class="row-gap">${botones}</div>` : ""}`;
+  const n = await Avisos.contarAdmins();
+  if (n !== null && $("#avisoAdminN")) $("#avisoAdminN").textContent = `Navegadores de administración registrados: ${n}.`;
+}
+$("#avisoAdmin").addEventListener("click", async e => {
+  const b = e.target.closest("[data-av]");
+  if (!b) return;
+  b.disabled = true;
+  try {
+    if (b.dataset.av === "activar") {
+      await Avisos.activar({ admin: true });
+      Avisos.probar().catch(() => {});
+      toast("Listo: este navegador recibirá las solicitudes nuevas.", "ok");
+    }
+    if (b.dataset.av === "probar") await Avisos.probar();
+    if (b.dataset.av === "quitar") {
+      await Avisos.quitarAdmin();
+      toast("Este navegador ya no recibirá las solicitudes nuevas.", "ok");
+    }
+    actualizarAvisosUI();
+  } catch (err) {
+    toast(err.message, "err", 9000);
+    b.disabled = false;
+  }
+});
 
 /* ---------------- Logo y tiempo real ---------------- */
 function cargarLogo() {
@@ -688,6 +909,9 @@ function refrescarVista() {
     el.textContent = { live: "En vivo", retry: "Reconectando…", local: "Modo local (solo este equipo)", error: "Sin conexión" }[s];
   });
   Data.subscribe(refrescarVista);
+  Data.subscribe(lista => Avisos.revisar(lista));
+  Avisos.init();
+  actualizarAvisosUI();
   Data.init();
   mostrar(location.hash.slice(1) || "inicio");
 })();
